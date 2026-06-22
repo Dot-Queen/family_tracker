@@ -19,31 +19,32 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Web Directory
+      - name: Setup Web Directory Environment
         run: |
           mkdir -p www
           if [ -f index.html ]; then mv index.html www/; fi
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Initialize Capacitor
+      - name: Initialize Capacitor Layout
         run: |
           npx cap init "Family Tracker" "com.family.gps" --web-dir=www
           npx cap add android
 
-      - name: Inject GPS Permissions
+      - name: Inject System GPS Permissions
         run: |
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Sync Code Assets
+      - name: Clean Sync Project Assets
         run: |
           npx cap copy android
+          npx cap sync android
 
-      - name: Build Android App (APK)
+      - name: Build Standalone Android App (APK)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew clean assembleDebug --no-daemon
 
       - name: Upload Finished App File
         uses: actions/upload-artifact@v4
