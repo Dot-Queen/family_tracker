@@ -19,26 +19,26 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Initialize Android SDK Setup
+      - name: Setup Android SDK environment
         uses: android-actions/setup-android@v3
 
-      - name: Setup Web Workspace Layout
+      - name: Setup Project and Create Core Wrappers
         run: |
           mkdir -p www
           if [ -f index.html ]; then mv index.html www/; fi
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
-
-      - name: Initialize Mobile App Configuration
-        run: |
+          # 🛠️ Force-generate the missing local gradle compilation wrappers natively
           npx cap init "Family Tracker" "com.family.gps" --web-dir=www
           npx cap add android
+          cd android
+          gradle wrapper --gradle-version 8.2
 
       - name: Inject Mobile GPS Permissions
         run: |
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Copy App Assets
+      - name: Sync Code Assets
         run: |
           npx cap copy android
 
