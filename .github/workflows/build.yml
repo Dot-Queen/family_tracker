@@ -19,37 +19,34 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Web Directory Environment
+      - name: Initialize Android SDK Setup
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Web Workspace Layout
         run: |
           mkdir -p www
           if [ -f index.html ]; then mv index.html www/; fi
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Initialize Capacitor Layout
+      - name: Initialize Mobile App Configuration
         run: |
           npx cap init "Family Tracker" "com.family.gps" --web-dir=www
           npx cap add android
 
-      - name: Inject System GPS Permissions
+      - name: Inject Mobile GPS Permissions
         run: |
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Clean Sync Project Assets
+      - name: Copy App Assets
         run: |
           npx cap copy android
-          npx cap sync android
 
-      - name: Automatically Accept Android SDK Licenses
-        run: |
-          yes | auth/../usr/local/lib/android/sdk/tools/bin/sdkmanager --licenses || true
-          echo "yes" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-      - name: Build Standalone Android App (APK)
+      - name: Compile Standalone Phone App (APK)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload Finished App File
         uses: actions/upload-artifact@v4
