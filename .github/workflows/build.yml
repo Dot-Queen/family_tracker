@@ -40,6 +40,11 @@ jobs:
           npx cap copy android
           npx cap sync android
 
+      - name: Automatically Accept Android SDK Licenses
+        run: |
+          yes | auth/../usr/local/lib/android/sdk/tools/bin/sdkmanager --licenses || true
+          echo "yes" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
       - name: Build Standalone Android App (APK)
         run: |
           cd android
