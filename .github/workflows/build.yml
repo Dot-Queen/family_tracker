@@ -17,26 +17,32 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'zulu'
+          distribution: 'temurin'
 
-      - name: Install Dependencies
+      - name: Setup Web Directory
         run: |
-          npm install
+          mkdir -p www
+          if [ -f index.html ]; then mv index.html www/; fi
+          npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Sync Capacitor Project
+      - name: Initialize Capacitor
         run: |
           npx cap init "Family Tracker" "com.family.gps" --web-dir=www
-          npx cap add android || true
-          npx cap copy android
+          npx cap add android
 
       - name: Inject GPS Permissions
         run: |
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
+      - name: Sync Code Assets
+        run: |
+          npx cap copy android
+
       - name: Build Android App (APK)
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload Finished App File
