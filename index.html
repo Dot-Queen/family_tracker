@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Family Tracker (Firebase)</title>
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+        #map { height: 100vh; width: 100%; }
+        #setup-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; gap: 10px; }
+        input, button { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-box">
+        <input type="text" id="nameInput" placeholder="Enter your name (e.g., Mom)">
+        <button onclick="startTracking()">Start Tracking</button>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet Map Library -->
+    <script src="https://unpkg.com"></script>
+
+    <!-- Firebase App and Realtime Database SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://gstatic.com";
+        import { getDatabase, ref, set, onChildAdded, onChildChanged } from "https://gstatic.com";
+
+        apiKey: "AIzaSyCIf_43033M5JZUugsReazy36ZKhjgpNak",
+  authDomain: "luxe-loops.firebaseapp.com",
+  projectId: "luxe-loops",
+  storageBucket: "luxe-loops.firebasestorage.app",
+  messagingSenderId: "529866427953",
+  appId: "1:529866427953:web:7631750c669293ac82cf10",
+  measurementId: "G-3DFERJ2B3T"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const locationsRef = ref(db, 'family_locations');
+
+        let map, myName;
+        let markers = {};
+
+        // Initialize Map
+        map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        window.startTracking = function() {
+            myName = document.getElementById('nameInput').value.trim();
+            if (!myName) return alert("Please enter your name first!");
+            document.getElementById('setup-box').style.display = 'none';
+
+            // 1. Listen for new family members adding their location
+            onChildAdded(locationsRef, (snapshot) => {
+                handleLocationUpdate(snapshot.key, snapshot.val());
+            });
+
+            // 2. Listen for family members moving in real-time
+            onChildChanged(locationsRef, (snapshot) => {
+                handleLocationUpdate(snapshot.key, snapshot.val());
+            });
+
+            // 3. Start broadcasting this device's GPS position
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(sendLocationToFirebase, handleError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 10000
+                });
+            } else {
+                alert("GPS location is not supported by this browser/device.");
+            }
+        };
+
+        function sendLocationToFirebase(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            if (!markers[myName]) {
+                map.setView([lat, lng], 15); // Zoom to self on start
+            }
+
+            // Save directly to Firebase under your name node
+            set(ref(db, 'family_locations/' + myName), {
+                latitude: lat,
+                longitude: lng,
+                timestamp: Date.now()
+            });
+        }
+
+        function handleLocationUpdate(name, data) {
+            if (!name || !data) return;
+            const pos = [data.latitude, data.longitude];
+
+            if (markers[name]) {
+                markers[name].setLatLng(pos);
+            } else {
+                markers[name] = L.marker(pos).addTo(map)
+                    .bindPopup(name)
+                    .openPopup();
+            }
+        }
+
+        function handleError(err) {
+            console.warn(`GPS Error (${err.code}): ${err.message}`);
+        }
+    </script>
+</body>
+</html>
