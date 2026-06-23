@@ -35,6 +35,12 @@ jobs:
         run: |
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
+      - name: Force Generate Android Build Files
+        run: |
+          cd android
+          # This command creates the exact missing gradlew execution tools needed by the cloud server
+          gradle wrapper --gradle-version 8.2
+
       - name: Clean Sync Project Assets
         run: |
           npx cap copy android
@@ -42,7 +48,6 @@ jobs:
 
       - name: Automatically Accept Android SDK Licenses
         run: |
-          # 🛠️ FIXED: Removed the broken path and used the correct direct system environment path
           echo "yes" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Build Standalone Android App (APK)
