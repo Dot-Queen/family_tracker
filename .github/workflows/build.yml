@@ -19,40 +19,37 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK Environment
-        uses: android-actions/setup-android@v3
-
-      - name: Prepare Workspace Folder Structure
+      - name: Setup Web Directory Environment
         run: |
           mkdir -p www
           if [ -f index.html ]; then mv index.html www/; fi
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Generate Core App Configurations
+      - name: Initialize Capacitor Layout
         run: |
           npx cap init "Family Tracker" "com.family.gps" --web-dir=www
           npx cap add android
 
-      - name: Fix and Force Generate Missing Gradle Tools
-        run: |
-          cd android
-          # 🛠️ Uses the server's globally installed gradle tools to generate the local gradlew wrapper files natively
-          gradle wrapper
-
-      - name: Inject Mobile GPS Permissions
+      - name: Inject System GPS Permissions
         run: |
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Sync Frontend Code Assets
+      - name: Clean Sync Project Assets
         run: |
           npx cap copy android
+          npx cap sync android
 
-      - name: Compile Standalone Phone App (APK)
+      - name: Automatically Accept Android SDK Licenses
+        run: |
+          # 🛠️ FIXED: Removed the broken path and used the correct direct system environment path
+          echo "yes" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Build Standalone Android App (APK)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew clean assembleDebug --no-daemon
 
       - name: Upload Finished App File
         uses: actions/upload-artifact@v4
